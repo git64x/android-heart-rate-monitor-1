@@ -14,13 +14,17 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.GraphViewSeries;
+import com.jjoe64.graphview.LineGraphView;
 
 
 /**
  * This class extends Activity to handle a picture preview, process the preview
  * for a red values and determine a heart beat.
- * 
+ *
  * @author Justin Wetherell <phishman3579@gmail.com>
  */
 public class HeartRateMonitor extends Activity {
@@ -37,7 +41,7 @@ public class HeartRateMonitor extends Activity {
     private static WakeLock wakeLock = null;
 
     private static int averageIndex = 0;
-    private static final int averageArraySize = 4;
+    private static final int averageArraySize = 100;
     private static final int[] averageArray = new int[averageArraySize];
 
     public static enum TYPE {
@@ -51,10 +55,16 @@ public class HeartRateMonitor extends Activity {
     }
 
     private static int beatsIndex = 0;
-    private static final int beatsArraySize = 3;
+    private static final int beatsArraySize = 14;
     private static final int[] beatsArray = new int[beatsArraySize];
+    private static final long[] timesArray = new long[beatsArraySize];
     private static double beats = 0;
     private static long startTime = 0;
+
+    private static GraphView graphView;
+    private static GraphViewSeries exampleSeries;
+
+    static int counter = 0;
 
     /**
      * {@inheritDoc}
@@ -74,6 +84,26 @@ public class HeartRateMonitor extends Activity {
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "DoNotDimScreen");
+
+
+        this.graphView = new LineGraphView(
+                this // context
+                , "GraphViewDemo" // heading
+        );
+        graphView.setScrollable(true);
+
+        this.exampleSeries = new GraphViewSeries(new GraphView.GraphViewData[] {});
+        this.graphView.addSeries(this.exampleSeries);
+//        this.graphView.addSeries(new GraphViewSeries(new GraphView.GraphViewData[] {
+//                new GraphView.GraphViewData(1, 2.0d)
+//                , new GraphView.GraphViewData(2, 1.5d)
+//                , new GraphView.GraphViewData(3, 2.5d)
+//                , new GraphView.GraphViewData(4, 1.0d)
+//        })); // data
+        graphView.setViewPort(0,20);
+
+        LinearLayout layout = (LinearLayout) findViewById(R.id.graph1);
+        layout.addView(graphView);
     }
 
     /**
@@ -138,6 +168,9 @@ public class HeartRateMonitor extends Activity {
 
             int averageArrayAvg = 0;
             int averageArrayCnt = 0;
+            // Loop over each element in avgArray and sum them up!
+            // averageArray holds the last [length] samples.  This will be compared against imgAvg
+            // to determine if we're experiencing a beat.
             for (int i = 0; i < averageArray.length; i++) {
                 if (averageArray[i] > 0) {
                     averageArrayAvg += averageArray[i];
@@ -145,21 +178,27 @@ public class HeartRateMonitor extends Activity {
                 }
             }
 
+            if (averageIndex == averageArraySize) averageIndex = 0;
+            averageArray[averageIndex] = imgAvg;
+            averageIndex++;
+
             int rollingAverage = (averageArrayCnt > 0) ? (averageArrayAvg / averageArrayCnt) : 0;
             TYPE newType = currentType;
             if (imgAvg < rollingAverage) {
                 newType = TYPE.RED;
+
+
                 if (newType != currentType) {
+                    beatsIndex++;
+                    timesArray[beatsIndex % beatsArraySize] = System.currentTimeMillis();
                     beats++;
-                    // Log.d(TAG, "BEAT!! beats="+beats);
+                    Log.d(TAG, "BEAT!!");
                 }
             } else if (imgAvg > rollingAverage) {
                 newType = TYPE.GREEN;
             }
 
-            if (averageIndex == averageArraySize) averageIndex = 0;
-            averageArray[averageIndex] = imgAvg;
-            averageIndex++;
+
 
             // Transitioned from one state to another to the same
             if (newType != currentType) {
@@ -168,37 +207,25 @@ public class HeartRateMonitor extends Activity {
             }
 
             long endTime = System.currentTimeMillis();
-            double totalTimeInSecs = (endTime - startTime) / 1000d;
-            if (totalTimeInSecs >= 10) {
-                double bps = (beats / totalTimeInSecs);
-                int dpm = (int) (bps * 60d);
-                if (dpm < 30 || dpm > 180) {
-                    startTime = System.currentTimeMillis();
-                    beats = 0;
-                    processing.set(false);
-                    return;
-                }
+            timesArray[beatsIndex % beatsArraySize] = System.currentTimeMillis();
 
-                // Log.d(TAG,
-                // "totalTimeInSecs="+totalTimeInSecs+" beats="+beats);
 
-                if (beatsIndex == beatsArraySize) beatsIndex = 0;
-                beatsArray[beatsIndex] = dpm;
-                beatsIndex++;
+            counter++;
 
-                int beatsArrayAvg = 0;
-                int beatsArrayCnt = 0;
-                for (int i = 0; i < beatsArray.length; i++) {
-                    if (beatsArray[i] > 0) {
-                        beatsArrayAvg += beatsArray[i];
-                        beatsArrayCnt++;
-                    }
-                }
-                int beatsAvg = (beatsArrayAvg / beatsArrayCnt);
-                text.setText(String.valueOf(beatsAvg));
-                startTime = System.currentTimeMillis();
-                beats = 0;
+            exampleSeries.appendData(new GraphView.GraphViewData(counter, imgAvg), true, 1000);
+
+            double totalTimeInSecs = (timesArray[beatsIndex % beatsArraySize] - timesArray[(beatsIndex + 1) % beatsArraySize]) / 1000d;
+            if (beatsIndex % beatsArraySize == 0)
+            {
+                Log.d(TAG, "time diff=" + totalTimeInSecs);
             }
+
+            double bps = ((beatsArraySize-1) / totalTimeInSecs);
+            int bpm = (int) (bps * 60d);
+
+            text.setText(String.valueOf(bpm));
+
+
             processing.set(false);
         }
     };

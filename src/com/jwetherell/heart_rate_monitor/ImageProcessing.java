@@ -36,7 +36,8 @@ public abstract class ImageProcessing {
 
                 int pixel = 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
                 int red = (pixel >> 16) & 0xff;
-                sum += red;
+                int green = (pixel >> 8) & 0xff;
+                sum += green; // I hear green works better than RED!
             }
         }
         return sum;
