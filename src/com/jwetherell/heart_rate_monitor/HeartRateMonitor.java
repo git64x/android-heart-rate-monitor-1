@@ -1,13 +1,19 @@
 package com.jwetherell.heart_rate_monitor;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.res.Configuration;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.util.Log;
@@ -19,6 +25,8 @@ import android.widget.TextView;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GraphViewSeries;
 import com.jjoe64.graphview.LineGraphView;
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.commons.lang3.ArrayUtils;
 
 
 /**
@@ -29,7 +37,7 @@ import com.jjoe64.graphview.LineGraphView;
  */
 public class HeartRateMonitor extends Activity {
 
-    private static final String TAG = "HeartRateMonitor";
+    public static final String TAG = "HeartRateMonitor";
     private static final AtomicBoolean processing = new AtomicBoolean(false);
 
     private static SurfaceView preview = null;
@@ -65,6 +73,19 @@ public class HeartRateMonitor extends Activity {
     private static GraphViewSeries exampleSeries;
 
     static int counter = 0;
+
+    private static final int sampleSize = 256;
+    private static final CircularFifoQueue sampleQueue = new CircularFifoQueue(sampleSize);
+    private static final CircularFifoQueue timeQueue = new CircularFifoQueue(sampleSize);
+
+    public static final CircularFifoQueue bpmQueue = new CircularFifoQueue(40);
+
+    private static final FFT fft = new FFT(sampleSize);
+
+    private Metronome metronome;
+
+
+    static BufferedWriter out;
 
     /**
      * {@inheritDoc}
@@ -126,6 +147,18 @@ public class HeartRateMonitor extends Activity {
         camera = Camera.open();
 
         startTime = System.currentTimeMillis();
+
+        File file = new File(this.getFilesDir(), "data.txt");
+        try {
+            out = new BufferedWriter(new FileWriter(file));
+        } catch (IOException e) {
+            Log.e(TAG,"unexpected Error", e);
+            e.printStackTrace();
+        }
+
+        metronome = new Metronome(this);
+        metronome.start();
+
     }
 
     /**
@@ -141,8 +174,16 @@ public class HeartRateMonitor extends Activity {
         camera.stopPreview();
         camera.release();
         camera = null;
+        try {
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        bpm = -1;
     }
 
+    public static int bpm;
     private static PreviewCallback previewCallback = new PreviewCallback() {
 
         /**
@@ -160,73 +201,134 @@ public class HeartRateMonitor extends Activity {
             int height = size.height;
 
             int imgAvg = ImageProcessing.decodeYUV420SPtoRedAvg(data.clone(), height, width);
-            // Log.i(TAG, "imgAvg="+imgAvg);
-            if (imgAvg == 0 || imgAvg == 255) {
+
+            try {
+                out.write(imgAvg + ",");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            sampleQueue.add((double)imgAvg);
+            timeQueue.add(System.currentTimeMillis());
+
+            double[] y = new double[sampleSize];
+            double[] x = ArrayUtils.toPrimitive((Double[]) sampleQueue.toArray(new Double[0]));
+            long[] time = ArrayUtils.toPrimitive((Long[]) timeQueue.toArray(new Long[0]));
+
+            if (timeQueue.size() < sampleSize)
+            {
                 processing.set(false);
+
                 return;
             }
 
-            int averageArrayAvg = 0;
-            int averageArrayCnt = 0;
-            // Loop over each element in avgArray and sum them up!
-            // averageArray holds the last [length] samples.  This will be compared against imgAvg
-            // to determine if we're experiencing a beat.
-            for (int i = 0; i < averageArray.length; i++) {
-                if (averageArray[i] > 0) {
-                    averageArrayAvg += averageArray[i];
-                    averageArrayCnt++;
+            double Fs = ((double)timeQueue.size()) / (double)(time[timeQueue.size() - 1] - time[0]) * 1000;
+
+            fft.fft(x,y);
+
+            int low = Math.round((float)(sampleSize * 40 / 60 / Fs));
+            int high = Math.round((float)(sampleSize * 160 / 60 / Fs));
+
+            int bestI = 0;
+            double bestV = 0;
+            for (int i = low; i < high; i++){
+                double value = Math.sqrt(x[i]*x[i] + y[i]*y[i]);
+
+
+                if (value > bestV)
+                {
+                    bestV = value;
+                    bestI = i;
                 }
             }
 
-            if (averageIndex == averageArraySize) averageIndex = 0;
-            averageArray[averageIndex] = imgAvg;
-            averageIndex++;
+            bpm = Math.round((float)(bestI * Fs * 60 / sampleSize));
+            bpmQueue.add(bpm);
 
-            int rollingAverage = (averageArrayCnt > 0) ? (averageArrayAvg / averageArrayCnt) : 0;
-            TYPE newType = currentType;
-            if (imgAvg < rollingAverage) {
-                newType = TYPE.RED;
-
-
-                if (newType != currentType) {
-                    beatsIndex++;
-                    timesArray[beatsIndex % beatsArraySize] = System.currentTimeMillis();
-                    beats++;
-                    Log.d(TAG, "BEAT!!");
-                }
-            } else if (imgAvg > rollingAverage) {
-                newType = TYPE.GREEN;
-            }
-
-
-
-            // Transitioned from one state to another to the same
-            if (newType != currentType) {
-                currentType = newType;
-                image.postInvalidate();
-            }
-
-            long endTime = System.currentTimeMillis();
-            timesArray[beatsIndex % beatsArraySize] = System.currentTimeMillis();
-
+            text.setText(String.valueOf(bpm) + "," + String.valueOf(Math.round((float) Fs)));
 
             counter++;
-
-            exampleSeries.appendData(new GraphView.GraphViewData(counter, imgAvg), true, 1000);
-
-            double totalTimeInSecs = (timesArray[beatsIndex % beatsArraySize] - timesArray[(beatsIndex + 1) % beatsArraySize]) / 1000d;
-            if (beatsIndex % beatsArraySize == 0)
-            {
-                Log.d(TAG, "time diff=" + totalTimeInSecs);
-            }
-
-            double bps = ((beatsArraySize-1) / totalTimeInSecs);
-            int bpm = (int) (bps * 60d);
-
-            text.setText(String.valueOf(bpm));
-
-
+            exampleSeries.appendData(new GraphView.GraphViewData(counter, imgAvg), true, 1000); 
             processing.set(false);
+
+
+//
+//
+//
+////            try {
+////                out.write(imgAvg + ",");
+////            } catch (IOException e) {
+////                e.printStackTrace();
+////            }
+//
+//
+//            // Log.i(TAG, "imgAvg="+imgAvg);
+//            if (imgAvg == 0 || imgAvg == 255) {
+//                processing.set(false);
+//                return;
+//            }
+//
+//            int averageArrayAvg = 0;
+//            int averageArrayCnt = 0;
+//            // Loop over each element in avgArray and sum them up!
+//            // averageArray holds the last [length] samples.  This will be compared against imgAvg
+//            // to determine if we're experiencing a beat.
+//            for (int i = 0; i < averageArray.length; i++) {
+//                if (averageArray[i] > 0) {
+//                    averageArrayAvg += averageArray[i];
+//                    averageArrayCnt++;
+//                }
+//            }
+//
+//            if (averageIndex == averageArraySize) averageIndex = 0;
+//            averageArray[averageIndex] = imgAvg;
+//            averageIndex++;
+//
+//            int rollingAverage = (averageArrayCnt > 0) ? (averageArrayAvg / averageArrayCnt) : 0;
+//            TYPE newType = currentType;
+//            if (imgAvg < rollingAverage) {
+//                newType = TYPE.RED;
+//
+//
+//                if (newType != currentType) {
+//                    beatsIndex++;
+//                    timesArray[beatsIndex % beatsArraySize] = System.currentTimeMillis();
+//                    beats++;
+//                    Log.d(TAG, "BEAT!!");
+//                }
+//            } else if (imgAvg > rollingAverage) {
+//                newType = TYPE.GREEN;
+//            }
+//
+//
+//
+//            // Transitioned from one state to another to the same
+//            if (newType != currentType) {
+//                currentType = newType;
+//                image.postInvalidate();
+//            }
+//
+//            long endTime = System.currentTimeMillis();
+//            timesArray[beatsIndex % beatsArraySize] = System.currentTimeMillis();
+//
+//
+//            counter++;
+//
+//            exampleSeries.appendData(new GraphView.GraphViewData(counter, imgAvg), true, 1000);
+//
+//            double totalTimeInSecs = (timesArray[beatsIndex % beatsArraySize] - timesArray[(beatsIndex + 1) % beatsArraySize]) / 1000d;
+//            if (beatsIndex % beatsArraySize == 0)
+//            {
+//                Log.d(TAG, "time diff=" + totalTimeInSecs);
+//            }
+//
+//            double bps = ((beatsArraySize-1) / totalTimeInSecs);
+//            int bpm = (int) (bps * 60d);
+//
+//            text.setText(String.valueOf(bpm));
+//
+//
+//            processing.set(false);
         }
     };
 
