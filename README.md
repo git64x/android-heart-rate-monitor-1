@@ -1,5 +1,6 @@
 android-heart-rate-monitor
 ==========================
+![heart rate](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/heartrate_small.png "Heart rate")
 
 Android heart rate monitor and Processing heart rate receiver
 
