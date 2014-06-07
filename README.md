@@ -39,6 +39,6 @@ To use the Processing patch:
 
 Screenshots
 -----------------------------------------
-![start](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/blank.png "Start")
+![start](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/blank.png "Start" =200x)
 ![heart rate](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/heartrate.png "Heart rate")
 ![udp](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/udp.png "UDP")
