@@ -1,32 +1,30 @@
 package com.jwetherell.heart_rate_monitor;
 
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.commons.lang3.ArrayUtils;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.GraphViewSeries;
+import com.jjoe64.graphview.GraphViewSeries.GraphViewSeriesStyle;
 import com.jjoe64.graphview.LineGraphView;
-import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.apache.commons.lang3.ArrayUtils;
 
 
 /**
@@ -43,7 +41,7 @@ public class HeartRateMonitor extends Activity {
     private static SurfaceView preview = null;
     private static SurfaceHolder previewHolder = null;
     private static Camera camera = null;
-    private static View image = null;
+//    private static View image = null;
     private static TextView text = null;
 
     private static WakeLock wakeLock = null;
@@ -100,7 +98,7 @@ public class HeartRateMonitor extends Activity {
         previewHolder.addCallback(surfaceCallback);
         previewHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-        image = findViewById(R.id.image);
+//        image = findViewById(R.id.image);
         text = (TextView) findViewById(R.id.text);
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -109,11 +107,11 @@ public class HeartRateMonitor extends Activity {
 
         this.graphView = new LineGraphView(
                 this // context
-                , "GraphViewDemo" // heading
+                , "Heart rate" // heading
         );
         graphView.setScrollable(true);
 
-        this.exampleSeries = new GraphViewSeries(new GraphView.GraphViewData[] {});
+        this.exampleSeries = new GraphViewSeries("Heart rate", new GraphViewSeriesStyle(Color.RED, 8), new GraphView.GraphViewData[] {});
         this.graphView.addSeries(this.exampleSeries);
 //        this.graphView.addSeries(new GraphViewSeries(new GraphView.GraphViewData[] {
 //                new GraphView.GraphViewData(1, 2.0d)
@@ -121,11 +119,17 @@ public class HeartRateMonitor extends Activity {
 //                , new GraphView.GraphViewData(3, 2.5d)
 //                , new GraphView.GraphViewData(4, 1.0d)
 //        })); // data
-        graphView.setViewPort(0,20);
+        graphView.setViewPort(0,60);
+        graphView.setVerticalLabels(new String[]{""});
+        graphView.setHorizontalLabels(new String[]{""});
+        graphView.getGraphViewStyle().setVerticalLabelsWidth(1);
+        graphView.setBackgroundColor(Color.WHITE);
+        
 
         LinearLayout layout = (LinearLayout) findViewById(R.id.graph1);
         layout.addView(graphView);
     }
+    
 
     /**
      * {@inheritDoc}
@@ -145,16 +149,15 @@ public class HeartRateMonitor extends Activity {
         wakeLock.acquire();
 
         camera = Camera.open();
-
         startTime = System.currentTimeMillis();
 
-        File file = new File(this.getFilesDir(), "data.txt");
-        try {
-            out = new BufferedWriter(new FileWriter(file));
-        } catch (IOException e) {
-            Log.e(TAG,"unexpected Error", e);
-            e.printStackTrace();
-        }
+//        File file = new File(this.getFilesDir(), "data.txt");
+//        try {
+//            out = new BufferedWriter(new FileWriter(file));
+//        } catch (IOException e) {
+//            Log.e(TAG,"unexpected Error", e);
+//            e.printStackTrace();
+//        }
 
         metronome = new Metronome(this);
         metronome.start();
@@ -174,11 +177,11 @@ public class HeartRateMonitor extends Activity {
         camera.stopPreview();
         camera.release();
         camera = null;
-        try {
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            out.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         bpm = -1;
     }
@@ -202,11 +205,11 @@ public class HeartRateMonitor extends Activity {
 
             int imgAvg = ImageProcessing.decodeYUV420SPtoRedAvg(data.clone(), height, width);
 
-            try {
-                out.write(imgAvg + ",");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+//            try {
+//                out.write(imgAvg + ",");
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
 
             sampleQueue.add((double)imgAvg);
             timeQueue.add(System.currentTimeMillis());
@@ -245,7 +248,7 @@ public class HeartRateMonitor extends Activity {
             bpm = Math.round((float)(bestI * Fs * 60 / sampleSize));
             bpmQueue.add(bpm);
 
-            text.setText(String.valueOf(bpm) + "," + String.valueOf(Math.round((float) Fs)));
+            text.setText(String.valueOf(bpm));// + "," + String.valueOf(Math.round((float) Fs)));
 
             counter++;
             exampleSeries.appendData(new GraphView.GraphViewData(counter, imgAvg), true, 1000); 
@@ -353,7 +356,7 @@ public class HeartRateMonitor extends Activity {
         @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
             Camera.Parameters parameters = camera.getParameters();
-            parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+           parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
             Camera.Size size = getSmallestPreviewSize(width, height, parameters);
             if (size != null) {
                 parameters.setPreviewSize(size.width, size.height);
@@ -390,4 +393,5 @@ public class HeartRateMonitor extends Activity {
 
         return result;
     }
+   
 }
