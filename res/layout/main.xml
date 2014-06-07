@@ -83,6 +83,15 @@
             android:textSize="160sp"
             android:textStyle="bold" >
         </TextView>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:text="b"
+            android:textColor="@android:color/white"
+            android:textSize="5sp"
+            android:layout_margin="5dp">
+        </TextView>
     </FrameLayout>
 
 
