@@ -1,10 +1,14 @@
-package com.jwetherell.heart_rate_monitor;
+package com.vanderbie.heart_rate_monitor;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import android.os.AsyncTask;
-
+/**
+ * UDP streamer class
+ * 
+ * @author Joey van der Bie <joey@vanderbie.net>
+ */
 public class UDPThread  extends AsyncTask<String, Void, Void> {
 		
 		String msensordata;

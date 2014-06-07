@@ -1,13 +1,11 @@
-package com.jwetherell.heart_rate_monitor;
+package com.vanderbie.heart_rate_monitor;
+
+import org.apache.commons.lang3.ArrayUtils;
 
 import android.content.Context;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.util.Log;
-import org.apache.commons.lang3.ArrayUtils;
-
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Created by gdw on 2/8/14.

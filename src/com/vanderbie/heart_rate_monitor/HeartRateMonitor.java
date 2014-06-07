@@ -1,4 +1,4 @@
-package com.jwetherell.heart_rate_monitor;
+package com.vanderbie.heart_rate_monitor;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -40,6 +40,7 @@ import com.jjoe64.graphview.LineGraphView;
  * This class extends Activity to handle a picture preview, process the preview
  * for a red values and determine a heart beat.
  * 
+ * @author Joey van der Bie <joey@vanderbie.net>
  * @author Justin Wetherell <phishman3579@gmail.com>
  */
 public class HeartRateMonitor extends Activity {

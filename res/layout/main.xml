@@ -9,7 +9,7 @@
             <Button android:id="@+id/toggleUDPPanel"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="@string/toggle_udp_panel"
+            android:text="@string/app_name"
             android:background="@android:color/white"
             android:textColor="@android:color/secondary_text_dark"
             android:textSize="21sp"
