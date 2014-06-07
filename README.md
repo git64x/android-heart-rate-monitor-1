@@ -36,3 +36,9 @@ To use the Processing patch:
 - download Processing 2.0 from processing.org
 - copy the udp folder to the library folder of Processing
 - open de HeartRate_udp.pd patch in Processing
+
+Screenshots
+-----------------------------------------
+![start](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/blank.png "Start")
+![heart rate](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/heartrate.png "Heart rate")
+![udp](https://raw.githubusercontent.com/joeyvanderbie/android-heart-rate-monitor/master/screenshots/udp.png "UDP")
