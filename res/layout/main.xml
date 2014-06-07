@@ -3,35 +3,87 @@
     android:id="@+id/layout"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="vertical"
-        android:background="@android:color/white" >
+    android:background="@android:color/white"
+    android:orientation="vertical" >
 
+            <Button android:id="@+id/toggleUDPPanel"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/toggle_udp_panel"
+            android:background="@android:color/white"
+            android:textColor="@android:color/secondary_text_dark"
+            android:textSize="21sp"
+            android:padding="10dp"
+            />
+    
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/activity_vertical_margin"
+        android:orientation="vertical"
+        android:id="@+id/udp_panel" >
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="right|center_vertical"
+            android:orientation="horizontal" >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_data_to_target"
+                android:layout_marginTop="@dimen/activity_vertical_margin" />
+
+            <ToggleButton
+                android:id="@+id/stream_data_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/target_ip"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint_target_ip"
+            android:inputType="textUri" />
+
+        <EditText
+            android:id="@+id/target_port"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint_target_port"
+            android:inputType="number" />
+    </LinearLayout>
     <LinearLayout
         android:id="@+id/graph1"
         android:layout_width="fill_parent"
         android:layout_height="100dp"
-        android:orientation="vertical"
-        android:background="@android:color/white" />
+        android:background="@android:color/white"
+        android:orientation="vertical" />
 
     <FrameLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical" >
+
         <SurfaceView
             android:id="@+id/preview"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content" >
         </SurfaceView>
-         <TextView
-                android:id="@+id/text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-    android:layout_gravity="center_horizontal|center_vertical"
-                android:text="@string/default_text"
-                android:textSize="160sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white" >
-            </TextView>
+
+        <TextView
+            android:id="@+id/text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|center_vertical"
+            android:text="@string/default_text"
+            android:textColor="@android:color/white"
+            android:textSize="160sp"
+            android:textStyle="bold" >
+        </TextView>
     </FrameLayout>
+
 
 </LinearLayout>
